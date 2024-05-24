@@ -10,5 +10,8 @@ void ComputeRho(MultiFab&      PoissonPhi,
                 MultiFab&      rho,
                 MultiFab&      e_den,
                 MultiFab&      p_den,
-                const MultiFab& MaterialMask);
+		MultiFab&      acceptor_den,
+		MultiFab&      donor_den,
+                const MultiFab& MaterialMask, 
+		const Geometry& geom);
 

@@ -212,6 +212,8 @@ AMREX_GPU_MANAGED amrex::Real FerroX::intrinsic_carrier_concentration;
 AMREX_GPU_MANAGED int FerroX::use_Fermi_Dirac;
 AMREX_GPU_MANAGED int FerroX::use_work_function;
 AMREX_GPU_MANAGED amrex::Real FerroX::metal_work_function;
+AMREX_GPU_MANAGED int FerroX::use_sro;
+AMREX_GPU_MANAGED int FerroX::complete_ionization;
 
 // P and Phi Bc
 AMREX_GPU_MANAGED amrex::Real FerroX::lambda;
@@ -447,16 +449,23 @@ void InitializeFerroXNamespace(const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM
          }
      }
 
-     // For Silicon:
-     // Nc = 2.8e25 m^-3
-     // Nv = 1.83e25 m^-3
-     // Band gap Eg = 1.12eV
+     use_sro = 0;
+     pp.query("use_sro",use_sro);
+    
+     if (use_sro == 0){ 
+        //For Silicon:
+        Nc = 2.8e25; // m^-3
+        Nv = 1.83e25; //m^-3
+        bandgap = 1.12; //eV
+        affinity = 4.05; //eV
      // 1eV = 1.602e-19 J
-
-     Nc = 2.8e25;
-     Nv = 1.83e25;
-     bandgap = 1.12; //eV
-     affinity = 4.05; //eV
+     } else {
+	//for SRO:
+        Nc = 4.640317153991026e+26;
+        Nv = 1.9697595861578862e+30;
+        bandgap = 1.25; //eV
+        affinity = 7.2; //eV
+     }
      q = 1.602e-19;
      kb = 1.38e-23; // Boltzmann constant
      T = 300; // Room Temp
@@ -466,6 +475,10 @@ void InitializeFerroXNamespace(const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM
      donor_doping = 0.0;
      pp.query("donor_doping",donor_doping);
 
+     complete_ionization = 1;
+     pp.query("complete_ionization",complete_ionization);
+    
+     //For partial ionization:
      //The most common acceptor dopant in bulk Si is boron (B), which has Ea = 44 meV
      //The most common donors in bulk Si are phosphorus (P) and arsenic (As), 
      //which have ionization energies of Ed = 46 meV and 54 meV, respectively.

@@ -51,6 +51,8 @@ namespace FerroX {
     extern AMREX_GPU_MANAGED int use_Fermi_Dirac;
     extern AMREX_GPU_MANAGED int use_work_function;
     extern AMREX_GPU_MANAGED amrex::Real metal_work_function;
+    extern AMREX_GPU_MANAGED int use_sro;
+    extern AMREX_GPU_MANAGED int complete_ionization;
     
 
     // P and Phi Bc

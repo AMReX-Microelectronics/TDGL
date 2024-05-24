@@ -167,4 +167,3 @@ void CalculateTDGL_RHS(Array<MultiFab, AMREX_SPACEDIM> &GL_rhs,
         }
 }
 
-

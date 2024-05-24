@@ -16,14 +16,11 @@ void ComputeRho(MultiFab&      PoissonPhi,
                 MultiFab&      rho,
                 MultiFab&      e_den,
                 MultiFab&      p_den,
-		const MultiFab& MaterialMask)
+                MultiFab&      acceptor_den,
+                MultiFab&      donor_den,
+		const MultiFab& MaterialMask,
+		const Geometry& geom)
 {
-
-    //Define acceptor and donor multifabs for doping and fill them with zero.
-    MultiFab acceptor_den(rho.boxArray(), rho.DistributionMap(), 1, 0);
-    MultiFab donor_den(rho.boxArray(), rho.DistributionMap(), 1, 0);
-    acceptor_den.setVal(0.);
-    donor_den.setVal(0.);
 
     // loop over boxes
     for (MFIter mfi(PoissonPhi); mfi.isValid(); ++mfi)
@@ -47,7 +44,12 @@ void ComputeRho(MultiFab&      PoissonPhi,
       
                 //Following: http://dx.doi.org/10.1063/1.4825209
 
-                amrex::Real Ef = 0.0;
+	        amrex::Real Ef;
+                if (mask(i,j,k) == 2.0){
+		   Ef = 0.0;
+		} else {
+		   Ef = -q*Phi_Bc_hi;
+		}
                 amrex::Real Eg = bandgap;
                 amrex::Real Chi = affinity;
                 amrex::Real phi_ref = Chi + 0.5*Eg + 0.5*kb*T*log(Nc/Nv)/q;
@@ -62,8 +64,8 @@ void ComputeRho(MultiFab&      PoissonPhi,
                 //g_D is the donor ground state degeneracy factor and is equal to 2
                 //because a donor level can accept one electron with either spin or can have no electron when filled.
 
-                amrex::Real g_A = 4.0;
-                amrex::Real g_D = 2.0;
+		amrex::Real g_A	= 4.0;
+		amrex::Real g_D = 2.0;
 
                 amrex::Real Ea = acceptor_ionization_energy;  
                 amrex::Real Ed = donor_ionization_energy; 
@@ -76,18 +78,27 @@ void ComputeRho(MultiFab&      PoissonPhi,
                   e_den_arr(i,j,k) = Nc*FD_half(eta_n);
                   hole_den_arr(i,j,k) = Nv*FD_half(eta_p);
          
-                  acceptor_den_arr(i,j,k) = acceptor_doping/(1.0 + g_A*exp((-q*Ef + q*Ea + q*phi_ref - q*Chi - q*Eg - q*phi(i,j,k))/(kb*T)));
-                  donor_den_arr(i,j,k) = donor_doping/(1.0 + g_D*exp( (q*Ef + q*Ed - q*phi_ref + q*Chi + q*phi(i,j,k)) / (kb*T) ));
+		  if (complete_ionization == 0){ 
+                     acceptor_den_arr(i,j,k) = acceptor_doping/(1.0 + g_A*exp((-q*Ef + q*Ea + q*phi_ref - q*Chi - q*Eg - q*phi(i,j,k))/(kb*T)));
+                     donor_den_arr(i,j,k) = donor_doping/(1.0 + g_D*exp( (q*Ef + q*Ed - q*phi_ref + q*Chi + q*phi(i,j,k)) / (kb*T) ));
+		  } else {
+                     acceptor_den_arr(i,j,k) = acceptor_doping;
+		     donor_den_arr(i,j,k) = donor_doping;
+		  }
 
                   } else {
 
                   //Maxwell-Boltzmann
                   e_den_arr(i,j,k) =    Nc*exp( -(Ec_corr - q*Ef) / (kb*T) );
                   hole_den_arr(i,j,k) = Nv*exp( -(q*Ef - Ev_corr) / (kb*T) );
-               
-                  acceptor_den_arr(i,j,k) = acceptor_doping/(1.0 + g_A*exp((-q*Ef + q*Ea + q*phi_ref - q*Chi - q*Eg - q*phi(i,j,k))/(kb*T)));
-                  donor_den_arr(i,j,k) = donor_doping/(1.0 + g_D*exp( (q*Ef + q*Ed - q*phi_ref + q*Chi + q*phi(i,j,k)) / (kb*T) ));
-
+                  
+		  if (complete_ionization == 0){ 
+                     acceptor_den_arr(i,j,k) = acceptor_doping/(1.0 + g_A*exp((-q*Ef + q*Ea + q*phi_ref - q*Chi - q*Eg - q*phi(i,j,k))/(kb*T)));
+                     donor_den_arr(i,j,k) = donor_doping/(1.0 + g_D*exp( (q*Ef + q*Ed - q*phi_ref + q*Chi + q*phi(i,j,k)) / (kb*T) ));
+		  } else {
+                     acceptor_den_arr(i,j,k) = acceptor_doping;
+		     donor_den_arr(i,j,k) = donor_doping;
+		  }
                 }
 
 		charge_den_arr(i,j,k) = q*(hole_den_arr(i,j,k) - e_den_arr(i,j,k) - acceptor_den_arr(i,j,k) + donor_den_arr(i,j,k));
@@ -99,5 +110,10 @@ void ComputeRho(MultiFab&      PoissonPhi,
              }
         });
     }
+    rho.FillBoundary(geom.periodicity());
+    e_den.FillBoundary(geom.periodicity());
+    p_den.FillBoundary(geom.periodicity());
+    acceptor_den.FillBoundary(geom.periodicity());
+    donor_den.FillBoundary(geom.periodicity());
  }
 
